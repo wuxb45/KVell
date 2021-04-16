@@ -33,8 +33,9 @@ enum slab_action { ADD, UPDATE, DELETE, READ, READ_NO_LOOKUP, ADD_OR_UPDATE };
 struct slab_callback {
    slab_cb_t *cb;
    void *payload;
-   void (*func)(void * item, void * opaque);
-   void * opaque;
+   void (*func)(void * item, uint64_t arg1, uint64_t arg2);
+   uint64_t arg1;
+   uint64_t arg2;
    void *item;
 
    // Private
