@@ -3,15 +3,16 @@
 /*
  * Create a workload item for the database
  */
-char *create_unique_item(size_t item_size, uint64_t uid) {
-   char *item = malloc(item_size);
+char *create_unique_item(size_t key_size, size_t value_size, uint64_t uid) {
+   size_t item_size = key_size + value_size + sizeof(struct item_metadata);
+   char *item = calloc(1, item_size);
    struct item_metadata *meta = (struct item_metadata *)item;
-   meta->key_size = 8;
-   meta->value_size = item_size - 8 - sizeof(*meta);
+   meta->key_size = key_size; // real world key size
+   meta->value_size = value_size;
 
    char *item_key = &item[sizeof(*meta)];
    char *item_value = &item[sizeof(*meta) + meta->key_size];
-   *(uint64_t*)item_key = uid;
+   *(uint64_t*)item_key = __builtin_bswap64(uid);
    *(uint64_t*)item_value = uid;
    return item;
 }
@@ -31,7 +32,7 @@ char *create_workload_item(struct workload *w) {
 
    char *item_key = &item[sizeof(*meta)];
    char *item_value = &item[sizeof(*meta) + meta->key_size];
-   *(uint64_t*)item_key = key;
+   *(uint64_t*)item_key = __builtin_bswap64(key);
    strcpy(item_value, name);
    return item;
 }
@@ -181,11 +182,16 @@ void free_callback(struct slab_callback *cb, void *item) {
 }
 
 void compute_stats(struct slab_callback *cb, void *item) {
+   // XXX This function is a sink. The query results never goes to the caller.
+   // At least we need to access the item.
+   volatile struct item_metadata metacpy;
+   memcpy((void *)&metacpy, item, sizeof(metacpy));
+
    uint64_t start, end;
    declare_debug_timer;
    start_debug_timer {
       start = get_time_from_payload(cb, 0);
-      rdtscll(end);
+      end = time_nsec();
       add_timing_stat(end - start);
       if(DEBUG && cycles_to_us(end-start) > 10000) { // request took more than 10ms
          printf("Request [%lu: %lu] [%lu: %lu] [%lu: %lu] [%lu: %lu] [%lu: %lu] [%lu: %lu] [%lu: %lu] [%lu]\n",

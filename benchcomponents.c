@@ -1,5 +1,6 @@
 #include "headers.h"
 
+size_t PAGE_CACHE_SIZE = 0;
 int get_nb_workers(void) {
    return 1;
 }
@@ -10,6 +11,7 @@ void bench_pagecache(void) {
    declare_timer;
    p = malloc(sizeof(*p));
    page_cache_init(p);
+   PAGE_CACHE_SIZE = 1lu << 30; // 1G
 
    start_timer {
       void *page;

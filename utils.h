@@ -3,7 +3,6 @@
 #include "headers.h"
 #include "stats.h"
 
-#define PAGE_SIZE (4LU*1024LU)
 #define ONE_GB (1024*1024*1024)
 
 #define die(msg, args...) \
@@ -249,3 +248,4 @@
 uint64_t cycles_to_us(uint64_t cycles);
 void shuffle(size_t *array, size_t n);
 void pin_me_on(int core);
+uint64_t time_nsec(void);

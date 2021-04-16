@@ -7,14 +7,13 @@ using namespace btree;
 extern "C"
 {
    btree_t *btree_create() {
-      btree_map<uint64_t, struct index_entry> *b = new btree_map<uint64_t, struct index_entry>();
+      btree_map<string, struct index_entry> *b = new btree_map<string, struct index_entry>();
       return b;
    }
 
    int btree_find(btree_t *t, unsigned char* k, size_t len, struct index_entry *e) {
-      uint64_t hash = *(uint64_t*)k;
-      btree_map<uint64_t, struct index_entry> *b = static_cast< btree_map<uint64_t, struct index_entry> * >(t);
-      auto i = b->find(hash);
+      btree_map<string, struct index_entry> *b = static_cast< btree_map<string, struct index_entry> * >(t);
+      auto i = b->find(string((char *)k, len));
       if(i != b->end()) {
          *e = i->second;
          return 1;
@@ -24,15 +23,13 @@ extern "C"
    }
 
    void btree_delete(btree_t *t, unsigned char*k, size_t len) {
-      uint64_t hash = *(uint64_t*)k;
-      btree_map<uint64_t, struct index_entry> *b = static_cast< btree_map<uint64_t, struct index_entry> * >(t);
-      b->erase(hash);
+      btree_map<string, struct index_entry> *b = static_cast< btree_map<string, struct index_entry> * >(t);
+      b->erase(string((char *)k, len));
    }
 
    void btree_insert(btree_t *t, unsigned char*k, size_t len, struct index_entry *e) {
-      uint64_t hash = *(uint64_t*)k;
-      btree_map<uint64_t, struct index_entry> *b = static_cast< btree_map<uint64_t, struct index_entry> * >(t);
-      b->insert(make_pair(hash, *e));
+      btree_map<string, struct index_entry> *b = static_cast< btree_map<string, struct index_entry> * >(t);
+      b->insert(make_pair(string((char *)k, len), *e));
    }
 
    struct index_scan btree_find_n(btree_t *t, unsigned char* k, size_t len, size_t n) {
@@ -41,11 +38,10 @@ extern "C"
       res.entries = (struct index_entry*) malloc(n*sizeof(*res.entries));
       res.nb_entries = 0;
 
-      uint64_t hash = *(uint64_t*)k;
-      btree_map<uint64_t, struct index_entry> *b = static_cast< btree_map<uint64_t, struct index_entry> * >(t);
-      auto i = b->find_closest(hash);
+      btree_map<string, struct index_entry> *b = static_cast< btree_map<string, struct index_entry> * >(t);
+      auto i = b->find_closest(string((char *)k, len));
       while(i != b->end() && res.nb_entries < n) {
-         res.hashes[res.nb_entries] = i->first;
+         res.hashes[res.nb_entries] = *(uint64_t*)(i->first.c_str());
          res.entries[res.nb_entries] = i->second;
          res.nb_entries++;
          i++;
@@ -56,10 +52,11 @@ extern "C"
 
 
    void btree_forall_keys(btree_t *t, void (*cb)(uint64_t h, void *data), void *data) {
-      btree_map<uint64_t, struct index_entry> *b = static_cast< btree_map<uint64_t, struct index_entry> * >(t);
+      btree_map<string, struct index_entry> *b = static_cast< btree_map<string, struct index_entry> * >(t);
       auto i = b->begin();
       while(i != b->end()) {
-         cb(i->first, data);
+         uint64_t hash = *(uint64_t*)(i->first.c_str());
+         cb(hash, data);
          i++;
       }
       return;
@@ -67,7 +64,7 @@ extern "C"
 
 
    void btree_free(btree_t *t) {
-      btree_map<uint64_t, struct index_entry> *b = static_cast< btree_map<uint64_t, struct index_entry> * >(t);
+      btree_map<string, struct index_entry> *b = static_cast< btree_map<string, struct index_entry> * >(t);
       delete b;
    }
 }

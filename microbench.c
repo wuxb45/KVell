@@ -145,7 +145,7 @@ int bench_io(void) {
    size_t nb_pages;
 
 
-   fd = open(path,  O_RDWR | O_CREAT | O_DIRECT, 0777);
+   fd = open(path,  O_RDWR | O_CREAT | O_DIRECT, 0644);
    if(fd == -1)
       perr("Cannot open %s\n", path);
 
@@ -164,7 +164,7 @@ int bench_io(void) {
    } stop_timer("DirectIO - Time for %lu accesses = %lums (%lu io/s)", NB_ACCESSES, elapsed/1000, NB_ACCESSES*1000000LU/elapsed);*/
 
    close(fd);
-   fd = open(path,  O_RDWR | O_CREAT | O_NONBLOCK | O_DIRECT, 0777);
+   fd = open(path,  O_RDWR | O_CREAT | O_NONBLOCK | O_DIRECT, 0644);
 
    /* libaio perf - various queue size */
    size_t queue_sizes[] = { 56 };

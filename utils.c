@@ -1,38 +1,8 @@
 #include "headers.h"
 #include "utils.h"
 
-static uint64_t freq = 0;
-static uint64_t get_cpu_freq(void) {
-   if(freq)
-      return freq;
-
-   FILE *fd;
-   float freqf = 0;
-   char *line = NULL;
-   size_t len = 0;
-
-   fd = fopen("/proc/cpuinfo", "r");
-   if (!fd) {
-      fprintf(stderr, "failed to get cpu frequency\n");
-      perror(NULL);
-      return freq;
-   }
-
-   while (getline(&line, &len, fd) != EOF) {
-      if (sscanf(line, "cpu MHz\t: %f", &freqf) == 1) {
-         freqf = freqf * 1000000UL;
-         freq = (uint64_t) freqf;
-         break;
-      }
-   }
-
-   fclose(fd);
-   return freq;
-}
-
-
 uint64_t cycles_to_us(uint64_t cycles) {
-   return cycles*1000000LU/get_cpu_freq();
+   return cycles / 1000lu;
 }
 
 void shuffle(size_t *array, size_t n) {
@@ -61,4 +31,13 @@ void pin_me_on(int core) {
    if (s != 0)
       die("Cannot pin thread on core %d\n", core);
 
+}
+
+  uint64_t
+time_nsec(void)
+{
+  struct timespec ts;
+  // MONO_RAW is 5x to 10x slower than MONO
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return ((uint64_t)ts.tv_sec) * 1000000000lu + ((uint64_t)ts.tv_nsec);
 }

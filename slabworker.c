@@ -28,7 +28,7 @@
 static int nb_workers = 0;
 static int nb_disks = 0;
 static int nb_workers_launched = 0;
-static int nb_workers_ready = 0;
+static volatile int nb_workers_ready = 0;
 
 int get_nb_workers(void) {
    return nb_workers;
@@ -112,8 +112,7 @@ static size_t submit_slab_buffer(struct slab_context *ctx, int buffer_idx) {
 
 static uint64_t get_hash_for_item(char *item) {
    struct item_metadata *meta = (struct item_metadata *)item;
-   char *item_key = &item[sizeof(*meta)];
-   return *(uint64_t*)item_key;
+   return meta->hash;
 }
 
 /* Requests are statically attributed to workers using this function */
@@ -270,6 +269,7 @@ again:
                assert(get_item_size(callback->item) <= e->slab->item_size); // Item grew, this is not supported currently!
                update_item_async(callback);
             }
+            break;
          case DELETE:
             if(!e) {
                callback->slab = NULL;
@@ -327,8 +327,8 @@ static void *worker_slab_init(void *pdata) {
 
    __sync_add_and_fetch(&nb_workers_launched, 1);
 
-   pid_t x = syscall(__NR_gettid);
-   printf("[SLAB WORKER %lu] tid %d\n", ctx->worker_id, x);
+   //pid_t x = syscall(__NR_gettid);
+   //printf("[SLAB WORKER %lu] tid %d\n", ctx->worker_id, x);
    pin_me_on(ctx->worker_id);
 
    /* Create the pagecache for the worker */
@@ -343,7 +343,7 @@ static void *worker_slab_init(void *pdata) {
    ctx->slabs = malloc(nb_slabs*sizeof(*ctx->slabs));
    struct slab_callback *cb = malloc(sizeof(*cb));
    cb->cb = worker_slab_init_cb;
-   for(size_t i = 0; i < nb_slabs; i++) {
+   for (size_t i = 0; i < nb_slabs; i++) {
       ctx->slabs[i] = create_slab(ctx, ctx->worker_id, slab_sizes[i], cb);
    }
    free(cb);
@@ -351,14 +351,14 @@ static void *worker_slab_init(void *pdata) {
     __sync_add_and_fetch(&nb_workers_ready, 1);
 
    /* Main loop: do IOs and process enqueued requests */
-   declare_breakdown;
+   //declare_breakdown;
    while(1) {
       ctx->rdt++;
 
       while(io_pending(ctx->io_ctx)) {
-         worker_ioengine_enqueue_ios(ctx->io_ctx); __1
-         worker_ioengine_get_completed_ios(ctx->io_ctx); __2
-         worker_ioengine_process_completed_ios(ctx->io_ctx); __3
+         worker_ioengine_enqueue_ios(ctx->io_ctx); // __1
+         worker_ioengine_get_completed_ios(ctx->io_ctx); // __2
+         worker_ioengine_process_completed_ios(ctx->io_ctx); // __3
       }
 
       volatile size_t pending = ctx->sent_callbacks - ctx->processed_callbacks;
@@ -369,11 +369,11 @@ static void *worker_slab_init(void *pdata) {
             NOP10();
          }
          pending = ctx->sent_callbacks - ctx->processed_callbacks;
-      } __4
+      } // __4
 
-      worker_dequeue_requests(ctx); __5 // Process queue
+      worker_dequeue_requests(ctx); // __5
 
-      show_breakdown_periodic(1000, ctx->processed_callbacks, "io_submit", "io_getevents", "io_cb", "wait", "slab_cb");
+      //show_breakdown_periodic(1000, ctx->processed_callbacks, "io_submit", "io_getevents", "io_cb", "wait", "slab_cb");
    }
 
    return NULL;
@@ -395,10 +395,12 @@ void slab_workers_init(int _nb_disks, int nb_workers_per_disk) {
       ctx->callbacks = calloc(ctx->max_pending_callbacks, sizeof(*ctx->callbacks));
       pthread_create(&t, NULL, worker_slab_init, ctx);
    }
-
-   while(*(volatile int*)&nb_workers_ready != nb_workers) {
+   const uint64_t t0 = time_nsec();
+   while(nb_workers_ready != nb_workers) {
       NOP10();
    }
+   const uint64_t dt = time_nsec() - t0;
+   printf("recovery dt %lu\n", dt);
 }
 
 size_t get_database_size(void) {

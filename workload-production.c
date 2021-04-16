@@ -3,17 +3,17 @@
 
 // Create a new item for the database
 static char *create_unique_item_prod(uint64_t uid, uint64_t max_uid) {
-   size_t item_size;
+   size_t value_size;
    if(uid*100LU/max_uid < 1) // 1%
-      item_size = 100;
+      value_size = 100;
    else if(uid*100LU/max_uid < 82) // 81% + 1%
-      item_size = 400;
+      value_size = 400;
    else if(uid*100LU/max_uid < 98)
-      item_size = 1024;
+      value_size = 1024;
    else
-      item_size = 4096;
+      value_size = 4096;
 
-   return create_unique_item(item_size, uid);
+   return create_unique_item(wl_key_size, value_size, uid);
 }
 
 static void launch_prod(struct workload *w, bench_t b) {

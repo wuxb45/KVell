@@ -10,16 +10,21 @@
 #include "slabworker.h"
 #include "in-memory-index-generic.h"
 
+extern size_t wl_key_size;
+extern size_t wl_value_size;
 struct workload;
 typedef enum available_bench {
    ycsb_a_uniform,
    ycsb_b_uniform,
    ycsb_c_uniform,
    ycsb_e_uniform,
+   ycsb_f_uniform,
    ycsb_a_zipfian,
    ycsb_b_zipfian,
    ycsb_c_zipfian,
+   ycsb_d_zipfian,
    ycsb_e_zipfian,
+   ycsb_f_zipfian,
    prod1,
    prod2,
 } bench_t;
@@ -50,7 +55,7 @@ struct workload {
 void repopulate_db(struct workload *w);
 void run_workload(struct workload *w, bench_t bench);
 
-char *create_unique_item(size_t item_size, uint64_t uid);
+char *create_unique_item(size_t key_size, size_t value_size, uint64_t uid);
 void print_item(size_t idx, void* _item);
 
 void show_item(struct slab_callback *cb, void *item);

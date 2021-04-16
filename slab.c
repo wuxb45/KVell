@@ -6,6 +6,7 @@
 #include "pagecache.h"
 #include "slabworker.h"
 
+char * kvell_prefix = "./"; // default
 /*
  * A slab is a file containing 1 or more items of a given size.
  * The size of items is in slab->item_size.
@@ -56,7 +57,7 @@ void add_existing_item(struct slab *s, size_t idx, void *_item, struct slab_call
 }
 
 void process_existing_chunk(int slab_worker_id, struct slab *s, size_t nb_files, size_t file_idx, char *data, size_t start, size_t length, struct slab_callback *callback) {
-   static __thread declare_periodic_count;
+   //static __thread declare_periodic_count;
    size_t nb_items_per_page = PAGE_SIZE / s->item_size;
    size_t nb_pages = length / PAGE_SIZE;
    for(size_t p = 0; p < nb_pages; p++) {
@@ -67,7 +68,7 @@ void process_existing_chunk(int slab_worker_id, struct slab *s, size_t nb_files,
          add_existing_item(s, base_idx, &data[current], callback);
          base_idx++;
          current += s->item_size;
-         periodic_count(1000, "[SLAB WORKER %d] Init - Recovered %lu items, %lu free spots", slab_worker_id, s->nb_items, s->nb_free_items);
+         //periodic_count(1000, "[SLAB WORKER %d] Init - Recovered %lu items, %lu free spots", slab_worker_id, s->nb_items, s->nb_free_items);
       }
    }
 }
@@ -111,10 +112,13 @@ struct slab* create_slab(struct slab_context *ctx, int slab_worker_id, size_t it
    struct stat sb;
    char path[512];
    struct slab *s = calloc(1, sizeof(*s));
-
+   mkdir(kvell_prefix, 0755);
    size_t disk = slab_worker_id / (get_nb_workers()/get_nb_disks());
-   sprintf(path, PATH, disk, slab_worker_id, 0LU, item_size);
-   s->fd = open(path,  O_RDWR | O_CREAT | O_DIRECT, 0777);
+   sprintf(path, "%s/disk-%lu", kvell_prefix, disk);
+   mkdir(path, 0755);
+
+   sprintf(path, "%s/disk-%lu/%d-%lu-%lu", kvell_prefix, disk, slab_worker_id, 0LU, item_size);
+   s->fd = open(path,  O_RDWR | O_CREAT | O_DIRECT, 0644);
    if(s->fd == -1)
       perr("Cannot allocate slab %s", path);
 

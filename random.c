@@ -1,6 +1,7 @@
 #include "headers.h"
 #include "random.h"
 #include <math.h>
+#include <stdatomic.h>
 
 /* xorshf96 */
 static unsigned long x=123456789, y=362436069, z=521288629;
@@ -118,6 +119,18 @@ long zipf_next() {
 /* Uniform */
 long uniform_next() {
    return rand_r(&seed) % items;
+}
+
+static atomic_long latest_head = 0;
+
+long latest_write_next() {
+   return latest_head++;
+}
+
+long latest_read_next() {
+   long z = zipf_next();
+   long head = latest_head;
+   return z >= head ? 0 : (head - z);
 }
 
 /* bogus rand */

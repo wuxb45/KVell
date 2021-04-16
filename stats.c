@@ -19,8 +19,8 @@ void add_timing_stat(uint64_t elapsed) {
       stats.max_timing_idx = MAX_STATS;
    }
    if(stats.timing_idx >= stats.max_timing_idx)
-      return;
-      //die("Cannot collect all stats, buffer is full!\n");
+      stats.timing_idx = 0; // wrap around
+
    rdtscll(stats.timing_time[stats.timing_idx]);
    stats.timing_value[stats.timing_idx] = elapsed;
    stats.timing_idx++;
@@ -49,8 +49,16 @@ void print_stats(void) {
    qsort(stats.timing_value, last, sizeof(*stats.timing_value), cmp_uint);
    for(size_t i = 0; i < last; i++)
       avg += stats.timing_value[i];
+   for(size_t i = 0; i < 1000; i++) {
+      printf("CDF p1000 %4lu us %lu\n", i, cycles_to_us(stats.timing_value[last * i / 1000]));
+   }
 
-   printf("#Latency:\n#\tAVG - %lu us\n#\t99p - %lu us\n#\tmax - %lu us\n", cycles_to_us(avg/last), cycles_to_us(stats.timing_value[last*99/100]), cycles_to_us(stats.timing_value[last-1]));
+   printf("#Latency: avg %lu 95 %lu 99 %lu 99.5 %lu 99.9 %lu max %lu\n", cycles_to_us(avg/last),
+      cycles_to_us(stats.timing_value[last*95/100]),
+      cycles_to_us(stats.timing_value[last*99/100]),
+      cycles_to_us(stats.timing_value[last*995/1000]),
+      cycles_to_us(stats.timing_value[last*999/1000]),
+      cycles_to_us(stats.timing_value[last-1]));
 
    stats.timing_idx = 0;
 }
@@ -77,7 +85,7 @@ void add_time_in_payload(struct slab_callback *c, size_t origin) {
       return;
 
    uint64_t t, pos = 0;
-   rdtscll(t);
+   t = time_nsec();
    while(pos < 20 && payload[pos].time)
       pos++;
    if(pos == 20)
@@ -88,7 +96,7 @@ void add_time_in_payload(struct slab_callback *c, size_t origin) {
    if(origin != 0)
       return;
    uint64_t t;
-   rdtscll(t);
+   t = time_nsec();
    c->payload = (void*)t;
 #endif
 }
