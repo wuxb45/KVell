@@ -88,7 +88,7 @@ kvell_scan50(const void * key, size_t klen, const uint64_t hash, void (*func)(vo
   tree_scan_res_t scan_res = kv_init_scan(item, 50); // has to hardcode it
   free(item);
   for (size_t j = 0; j < scan_res.nb_entries; j++) {
-    struct slab_callback *cb = kvell_create_cb(func, arg1, arg2);
+    struct slab_callback *cb = kvell_create_cb(j == (scan_res.nb_entries - 1) ? func : NULL, arg1, arg2);
     kv_read_async_no_lookup(cb, scan_res.entries[j].slab, scan_res.entries[j].slab_idx);
   }
   free(scan_res.hashes);
