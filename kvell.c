@@ -8,17 +8,19 @@ static void kvell_cb(struct slab_callback *cb, void *item) {
   struct item_metadata metacpy;
   if (item)
     memcpy((void *)&metacpy, item, sizeof(metacpy));
+  if (cb->func) {
+    cb->func(item, cb->opaque);
+  }
 
   free(cb->item);
-  if(DEBUG)
-    free_payload(cb);
   free(cb);
 }
 
-struct slab_callback *kvell_create_cb(void) {
+struct slab_callback *kvell_create_cb(void (*func)(void * item, void * opaque), void * opaque) {
   struct slab_callback *cb = calloc(1, sizeof(*cb));
   cb->cb = kvell_cb;
-  cb->payload = allocate_payload();
+  cb->func = func;
+  cb->opaque = opaque;
   return cb;
 }
 
@@ -51,26 +53,27 @@ kvell_create_item(const void * key, size_t klen, const uint64_t hash, const void
 }
 
   void
-kvell_get_submit(const void * key, size_t klen, const uint64_t hash)
+kvell_get_submit(const void * key, size_t klen, const uint64_t hash, void (*func)(void * item, void * opaque), void * opaque)
 {
-  struct slab_callback *cb = kvell_create_cb();
+  struct slab_callback *cb = kvell_create_cb(func, opaque);
   cb->item = kvell_create_item(key, klen, hash, NULL, 0);
   kv_read_async(cb);
   // queued but the caller never know when does the request get processed
 }
 
   void
-kvell_set_submit(const void * key, size_t klen, const uint64_t hash, const void * value, size_t vlen)
+kvell_set_submit(const void * key, size_t klen, const uint64_t hash, const void * value, size_t vlen,
+    void (*func)(void * item, void * opaque), void * opaque)
 {
-  struct slab_callback *cb = kvell_create_cb();
+  struct slab_callback *cb = kvell_create_cb(func, opaque);
   cb->item = kvell_create_item(key, klen, hash, value, vlen);
   kv_add_or_update_async(cb); // set
 }
 
   void
-kvell_del_submit(const void * key, size_t klen, const uint64_t hash)
+kvell_del_submit(const void * key, size_t klen, const uint64_t hash, void (*func)(void * item, void * opaque), void * opaque)
 {
-  struct slab_callback *cb = kvell_create_cb();
+  struct slab_callback *cb = kvell_create_cb(func, opaque);
   cb->item = kvell_create_item(key, klen, hash, NULL, 0);
   kv_remove_async(cb);
   // queued but the caller never know when does the request get processed
@@ -78,13 +81,13 @@ kvell_del_submit(const void * key, size_t klen, const uint64_t hash)
 
 
   void
-kvell_scan50(const void * key, size_t klen, const uint64_t hash)
+kvell_scan50(const void * key, size_t klen, const uint64_t hash, void (*func)(void * item, void * opaque), void * opaque)
 {
   char *item = kvell_create_item(key, klen, hash, NULL, 0);
   tree_scan_res_t scan_res = kv_init_scan(item, 50); // has to hardcode it
   free(item);
   for (size_t j = 0; j < scan_res.nb_entries; j++) {
-    struct slab_callback *cb = kvell_create_cb();
+    struct slab_callback *cb = kvell_create_cb(func, opaque);
     kv_read_async_no_lookup(cb, scan_res.entries[j].slab, scan_res.entries[j].slab_idx);
   }
   free(scan_res.hashes);
