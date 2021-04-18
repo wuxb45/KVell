@@ -94,3 +94,17 @@ kvell_scan50(const void * key, size_t klen, const uint64_t hash, void (*func)(vo
   free(scan_res.hashes);
   free(scan_res.entries);
 }
+
+  void
+kvell_scan_n(const void * key, size_t klen, const uint64_t hash, void (*func)(void * item, uint64_t arg1, uint64_t arg2), uint64_t arg1, uint64_t arg2, unsigned int n)
+{
+  char *item = kvell_create_item(key, klen, hash, NULL, 0);
+  tree_scan_res_t scan_res = kv_init_scan(item, n); // has to hardcode it
+  free(item);
+  for (size_t j = 0; j < scan_res.nb_entries; j++) {
+    struct slab_callback *cb = kvell_create_cb(j == (scan_res.nb_entries - 1) ? func : NULL, arg1, arg2);
+    kv_read_async_no_lookup(cb, scan_res.entries[j].slab, scan_res.entries[j].slab_idx);
+  }
+  free(scan_res.hashes);
+  free(scan_res.entries);
+}

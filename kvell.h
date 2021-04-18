@@ -15,3 +15,6 @@ kvell_del_submit(const void * key, size_t klen, const uint64_t hash, void (*func
 // XXX does 50 scans
   extern void
 kvell_scan50(const void * key, size_t klen, const uint64_t hash, void (*func)(void * item, uint64_t arg1, uint64_t arg2), uint64_t arg1, uint64_t arg2);
+
+  extern void
+kvell_scan_n(const void * key, size_t klen, const uint64_t hash, void (*func)(void * item, uint64_t arg1, uint64_t arg2), uint64_t arg1, uint64_t arg2, unsigned int n);
