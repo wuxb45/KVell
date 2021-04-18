@@ -262,6 +262,7 @@ again:
                callback->slab = get_slab(ctx, callback->item);
                callback->slab_idx = -1;
                add_item_async(callback);
+               btree_index_add(callback, callback->item);
             } else {
                callback->action = UPDATE;
                callback->slab = e->slab;
