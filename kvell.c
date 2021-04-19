@@ -5,9 +5,10 @@ size_t PAGE_CACHE_SIZE = 1lu << 30; // 1GB by default
 size_t QUEUE_DEPTH = 64;
 
 static void kvell_cb(struct slab_callback *cb, void *item) {
-  struct item_metadata metacpy;
+  struct item_metadata * const meta = item;
+  char buf[512];
   if (item)
-    memcpy((void *)&metacpy, item, sizeof(metacpy));
+    memcpy(buf, meta+1, meta->value_size < 512 ? meta->value_size : 512);
   if (cb->func) {
     cb->func(item, cb->arg1, cb->arg2);
   }
