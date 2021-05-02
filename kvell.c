@@ -6,9 +6,11 @@ size_t QUEUE_DEPTH = 64;
 
 static void kvell_cb(struct slab_callback *cb, void *item) {
   struct item_metadata * const meta = item;
-  char buf[512];
-  if (item)
-    memcpy(buf, meta+1, meta->value_size < 512 ? meta->value_size : 512);
+  char buf[4096];
+  if (item) {
+    const size_t kvsize = meta->value_size + meta->key_size;
+    memcpy(buf, meta+1, kvsize < 4096 ? kvsize : 4096);
+  }
   if (cb->func) {
     cb->func(item, cb->arg1, cb->arg2);
   }
