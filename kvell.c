@@ -66,12 +66,12 @@ kvell_get_submit(const void * key, size_t klen, const uint64_t hash, void (*func
 }
 
   void
-kvell_set_submit(const void * key, size_t klen, const uint64_t hash, const void * value, size_t vlen,
+kvell_put_submit(const void * key, size_t klen, const uint64_t hash, const void * value, size_t vlen,
     void (*func)(void * item, uint64_t arg1, uint64_t arg2), uint64_t arg1, uint64_t arg2)
 {
   struct slab_callback *cb = kvell_create_cb(func, arg1, arg2);
   cb->item = kvell_create_item(key, klen, hash, value, vlen);
-  kv_add_or_update_async(cb); // set
+  kv_add_or_update_async(cb); // put
 }
 
   void
