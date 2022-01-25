@@ -396,12 +396,12 @@ void slab_workers_init(int _nb_disks, int nb_workers_per_disk) {
       ctx->callbacks = calloc(ctx->max_pending_callbacks, sizeof(*ctx->callbacks));
       pthread_create(&t, NULL, worker_slab_init, ctx);
    }
-   const uint64_t t0 = time_nsec();
+   // const uint64_t t0 = time_nsec();
    while(nb_workers_ready != nb_workers) {
       NOP10();
    }
-   const uint64_t dt = time_nsec() - t0;
-   printf("recovery dt %lu\n", dt);
+   // const uint64_t dt = time_nsec() - t0;
+   // printf("recovery dt %lu\n", dt);
 }
 
 size_t get_database_size(void) {
